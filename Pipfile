@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+kivy = "*"
+kivy-deps-sdl2 = "*"
+kivy-deps-glew = "*"
+ffpyplayer = "*"
+requests = "*"
+pyinstaller = "*"
+
+[requires]
+python_version = "3.6"
+
+[scripts]
+build = "pyinstaller --noconfirm shinobiviewer.spec"
