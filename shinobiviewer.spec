@@ -3,7 +3,7 @@ from kivy_deps import sdl2, glew
 block_cipher = None
 
 
-a = Analysis(['main.py'],
+a = Analysis(['shinobiviewer.py'],
              binaries=[],
              datas=[],
              hiddenimports=['pkg_resources.py2_warn'],
@@ -29,4 +29,4 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=True )
+          console=False )

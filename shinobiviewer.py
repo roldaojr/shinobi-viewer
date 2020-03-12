@@ -1,16 +1,20 @@
+#!/usr/bin/python3
 from io import BytesIO
+from os import path
+import math
 import threading
 import requests
 import kivy
-from kivy.core.window import Window
-from kivy.core.image import Image as CoreImage
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.config import ConfigParser
+from kivy.core.image import Image as CoreImage
+from kivy.core.window import Window
 from kivy.lang.builder import Builder
-from kivy.app import App
+from kivy.properties import StringProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
-from kivy.properties import StringProperty
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.settings import SettingsWithSidebar
 
 
@@ -45,7 +49,7 @@ class ShinobiMonitor(BoxLayout):
                 '%s/%s' % (self.serverURL.rstrip('/'), self.monitorPath.strip('/')),
                 timeout=60
             )
-        except requests.exceptions.Timeout:
+        except requests.exceptions.ConnectionError:
             self._retry()
         if response.status_code == 200:
             self._data = response.json()
@@ -63,23 +67,30 @@ class ShinobiMonitor(BoxLayout):
             self.start()
 
     def update_image(self, *args):
-        im = None
         try:
             response = requests.get(self.snapshot_url, timeout=0.5)
             if response.status_code == 200:
                 data = BytesIO(response.content)
                 im = CoreImage(data, ext="jpeg", nocache=True)
-        except requests.exceptions.Timeout:
+                self.image.texture = im.texture
+                self.image.texture_size = im.texture.size
+        except:
             pass
-        if im is not None:
-            self.image.texture = im.texture
-            self.image.texture_size = im.texture.size
 
 
 class ShinobiViewer(App):
-    settings_cls = SettingsWithSidebar
+    fullscreen = BooleanProperty()
+
+    def on_fullscreen(self, instance, value):
+        if value:
+            Window.fullscreen = 'auto'
+        else:
+            Window.fullscreen = False
+        self.config.set('graphics', 'fullscreen', value)
+        self.config.write()
 
     def build(self):
+        self.fullscreen = self.config.get('graphics', 'fullscreen')
         Window.bind(on_keyboard=self.on_keyboard)  # bind our handler
         config = self.config['shinobi']
         monitors = config['monitors'].strip().split('\n')
@@ -89,7 +100,11 @@ class ShinobiViewer(App):
             ) for mid in monitors
         ]
         server_url = config['server'].rstrip('/')
-        layout = Builder.load_file('layouts/%s.kv' % config['layout'])
+        if config['layout'] == 'auto':
+            layout = self.auto_layout(len(monitors))
+        else:
+            layout = Builder.load_file('layouts/%s.kv' % config['layout'])
+
         monitor_slots = [
             widget for widget in layout.walk(restrict=True)
             if isinstance(widget, ShinobiMonitor)
@@ -106,15 +121,19 @@ class ShinobiViewer(App):
             'groupKey': '', 'monitors': ''
         })
         config.setdefaults('graphics', {
-            'fullscreen': 0
+            'fullscreen': 'auto'
         })
 
     def on_keyboard(self, window, key, scancode, codepoint, modifier):
         if scancode == 68: # F11
-            if Window.fullscreen:
-                Window.fullscreen = False
-            else:
-                Window.fullscreen = 'auto'
+            self.fullscreen = not self.fullscreen
+
+    def auto_layout(self, qtd):
+        cols = math.ceil(math.sqrt(qtd))
+        layout = GridLayout(cols=cols)
+        for i in range(qtd):
+            layout.add_widget(ShinobiMonitor())
+        return layout
 
 
 if __name__ == '__main__':

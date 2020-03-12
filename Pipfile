@@ -7,14 +7,14 @@ verify_ssl = true
 
 [packages]
 kivy = "*"
-kivy-deps-sdl2 = "*"
-kivy-deps-glew = "*"
-ffpyplayer = "*"
+kivy-deps-sdl2 = {version="*", sys_platform = "== 'win32'"}
+kivy-deps-glew = {version="*", sys_platform = "== 'win32'"}
 requests = "*"
 pyinstaller = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3"
 
 [scripts]
+shinobiviewer = "python shinobiviewer.py"
 build = "pyinstaller --noconfirm shinobiviewer.spec"

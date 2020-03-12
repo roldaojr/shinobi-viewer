@@ -1,11 +1,11 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "bc46e151ae3098e4c9c51b53fce0da734dc3f6eb11a32b6aef475e81f9980ff4"
+            "sha256": "d1e857de090e565320410afe321c1a8fcc2a66ce89b5252fc3a3712fc2e67917"
         },
         "pipfile-spec": 6,
         "requires": {
-            "python_version": "3.6"
+            "python_version": "3"
         },
         "sources": [
             {
@@ -43,26 +43,6 @@
                 "sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc"
             ],
             "version": "==0.16"
-        },
-        "ffpyplayer": {
-            "hashes": [
-                "sha256:08c516f62cce0da010a45c32d1ce3c5816500d91b083a77c08e7eadddfe4f25a",
-                "sha256:17bdfd39573e649d3976006340634ed27c2312fa483d4166d68c85ed85f5ee96",
-                "sha256:206c45660a553263d51f8a6abe679ba2966cee4979fdfc25e7385812f3e990fa",
-                "sha256:4038e5adaac6bf0a902bcd6abdb27cbc4350b0405c238c31460825145bba840e",
-                "sha256:57ce03db15c5bda150340f1f5df59b3b2a7ab92c11fc50252d9b0ba35010bdc4",
-                "sha256:5c25ad57ef3ea54884bb00534757b966140ba516217ba518d52ccdff4c3398e6",
-                "sha256:72ea1b0f31ebdeaeaebbcc56e52e8fd16a6d4facdacadf8c9b30ca56b2b9abcb",
-                "sha256:73081d8646de3281d44b4c1a2d627b9a4e3e0237530e5d77f5dcc85b47286c4d",
-                "sha256:95a34f60efc48fe2d3f08277d01559f4b1c6e1b2bc8dad14f2ce34191193f6c5",
-                "sha256:9e5e3a11df8f07b171384137707fd26df81bedd1762ebd8f43f002d80d8e6176",
-                "sha256:a3ba52c29cd5278dc2268fb67300fee830f5ceee02940b92e7a3e6a4cb350131",
-                "sha256:d63ca5174722155d2bad273351262d0a894c2a67c9945ac93e974fb9fbf63392",
-                "sha256:db21a1bd0f384ae544d2f12f16521c0fea5c355e965c703aed23a58fd225c9cf",
-                "sha256:dcfce97f57793005b8b15799de96db205780d90856c6ae2c6aba3a89b2591c9a"
-            ],
-            "index": "pypi",
-            "version": "==4.3.1"
         },
         "future": {
             "hashes": [
@@ -109,6 +89,7 @@
                 "sha256:a6f3230927c776a490bc5c0675265d9fe59a8afde2e7f1f5bb0a6a4c05a49738"
             ],
             "index": "pypi",
+            "markers": "sys_platform == 'win32'",
             "version": "==0.2.0"
         },
         "kivy-deps-sdl2": {
@@ -121,6 +102,7 @@
                 "sha256:f6c5fff4c1ebb75144e700cfae9fa79ad3b752a14761efe6996031b67d845298"
             ],
             "index": "pypi",
+            "markers": "sys_platform == 'win32'",
             "version": "==0.2.0"
         },
         "kivy-garden": {
@@ -137,10 +119,10 @@
         },
         "pygments": {
             "hashes": [
-                "sha256:2a3fe295e54a20164a9df49c75fa58526d3be48e14aceba6d6b1e8ac0bfd6f1b",
-                "sha256:98c8aa5a9f778fcd1026a17361ddaf7330d1b7c62ae97c3bb0ae73e0b9b6b0fe"
+                "sha256:647344a061c249a3b74e230c739f434d7ea4d8b1d5f3721bc0f3558049b38f44",
+                "sha256:ff7a40b4860b727ab48fad6360eb351cc1b33cbf9b15a0f689ca5353e9463324"
             ],
-            "version": "==2.5.2"
+            "version": "==2.6.1"
         },
         "pyinstaller": {
             "hashes": [
