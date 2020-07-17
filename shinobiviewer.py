@@ -15,6 +15,7 @@ from kivy.core.image import Image as CoreImage
 from kivy.core.window import Window
 from kivy.lang.builder import Builder
 from kivy.properties import StringProperty, BooleanProperty
+from kivy.loader import Loader
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
@@ -22,20 +23,36 @@ from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.settings import SettingsWithSidebar, SettingsPanel, SettingItem, SettingBoolean
 
-
 kivy.require('1.11.0')
+
 
 class ShinobiMonitor(BoxLayout):
     serverURL = StringProperty()
     monitorPath = StringProperty()
+    loading = BooleanProperty(False)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)        
+        super().__init__(*args, **kwargs)
         self._data = {}
         self._state = 'stop'
         self._update_event = None
-        self.image = Image(allow_stretch=True, keep_ratio=False)
-        self.add_widget(self.image)
+        self.image = Image(
+            allow_stretch=True,
+            keep_ratio=False
+        )
+        self.loading_image = Image(
+            source='data/images/image-loading.gif',
+            allow_stretch=False,
+            keep_ratio=True
+        )
+
+    def on_loading(self, instnace, value):
+        if value:
+            self.remove_widget(self.image)
+            self.add_widget(self.loading_image)
+        else:
+            self.add_widget(self.image)
+            self.remove_widget(self.loading_image)
 
     @property
     def snapshot_url(self):
@@ -46,6 +63,7 @@ class ShinobiMonitor(BoxLayout):
         return self._state
 
     def start(self):
+        self.loading = True
         self._state = 'play'
         self._image_lock = threading.Lock()
         self._image_buffer = None
@@ -55,6 +73,7 @@ class ShinobiMonitor(BoxLayout):
 
     def stop(self):
         self._state = 'stop'
+        self.loading = False
         Clock.unschedule(self._update_event)
 
     def _fetch_metadata(self):
@@ -79,12 +98,15 @@ class ShinobiMonitor(BoxLayout):
                 response = requests.get(self.snapshot_url, timeout=0.5)
             except:
                 time.sleep(0.5)
+                self.loading = True
                 continue
             if response.status_code == 200:
                 data = BytesIO(response.content)
                 im = CoreImage(data, ext="jpeg", nocache=True)
                 with self._image_lock:
                     self._image_buffer = im
+                if self.loading:
+                    self.loading = False
             time.sleep(1)
 
     def _update_image(self, *args):
@@ -127,30 +149,54 @@ class MonitorSettingsPanel(SettingsPanel):
         self.fetch_func = kwargs.pop('fetch_func', None)
         super().__init__(*args, **kwargs)
         self.monitors_items = []
-        refresh_item = SettingItem(
+        self.all_monitors = []
+        self._do_update_list = Clock.create_trigger(self._update_list)
+        self._list_thread = threading.Thread(
+            target=self._fetch_monitors, daemon=True
+        )
+        self.add_widget(SettingItem(
             panel=self,
             title='Refresh',
             desc='Get all monitors list',
-            section='monitors',
-            key='refresh'
-        )
-        refresh_item.fbind('on_release', self.refresh_touch)
-        self.add_widget(refresh_item)
+            on_release=self.refresh_touch
+        ))
 
     def refresh_touch(self, instance):
-        if not callable(self.fetch_func):
-            return
         for item in self.monitors_items:
             self.remove_widget(item)
-        all_monitors = list(self.fetch_func())
-        if len(all_monitors) > 0:
+        if not self._list_thread.isAlive():
+            self._list_thread.start()
+
+    def _fetch_monitors(self):
+        monitor_list_url = '/'.join([
+            self.config['shinobi']['server'].rstrip('/'),
+            self.config['shinobi']['apikey'],
+            'monitor',
+            self.config['shinobi']['groupkey'],
+        ])
+        try:
+            response = requests.get(monitor_list_url, timeout=30)
+        except:
+            pass
+        else:
+            for monitor in response.json():
+                details = json.loads(monitor['details'])
+                self.all_monitors.append({
+                    'mid': monitor['mid'],
+                    'name': monitor['name'],
+                    'groups': details['groups']
+                })
+        self._do_update_list()
+
+    def _update_list(self, *args, **kwargs):
+        if len(self.all_monitors) > 0:
             enabled_monitors = []
             for mid in self.config['monitors'].values():
-                for monitor in all_monitors:
+                for monitor in self.all_monitors:
                     if mid == monitor['mid']:
                         enabled_monitors.append(monitor)
             for monitor in enabled_monitors + [
-                m for m in all_monitors
+                m for m in self.all_monitors
                 if m['mid'] not in self.config['monitors'].values()
             ]:
                 item = SortableSettingBoolean(
@@ -168,9 +214,11 @@ class MonitorSettingsPanel(SettingsPanel):
                 title='No monitors to show',
                 desc=''
             )
+            self.add_widget(item)
+            self.monitors_items.append(item)
 
     def get_value(self, section, key):
-        if key == 'refresh':
+        if key is None:
             return
         if key in self.config[section].values():
             return '1'
@@ -212,24 +260,28 @@ class ShinobiViewer(App):
     fullscreen = BooleanProperty(False)
 
     def on_fullscreen(self, instance, value):
-        print('on_fullscreen', instance, value)
         if value:
-            Config.set('kivy', 'fullscreen', 'auto')
+            Window.fullscreen = 'auto'
         else:
-            Config.set('kivy', 'fullscreen', False)
+            Window.fullscreen = False
 
     def build(self):
         self.settings_cls = SettingsWithSidebar
         self.available_layouts = [
-            os.path.splitext(os.path.basename(l))[0] for l in glob("layouts/*.kv")
+            os.path.splitext(os.path.basename(l))[0]
+            for l in glob("layouts/*.kv")
         ]
         Window.bind(on_keyboard=self.on_keyboard)  # bind our handler
         monitors = self.config['monitors']
-        if monitors:
-            return self.add_monitors(monitors.values())
-        return Label(text='No monitors')
+        self.root = BoxLayout()
+        self.add_monitors()
+        return self.root
 
-    def add_monitors(self, monitors):
+    def add_monitors(self):
+        monitors = self.config['monitors'].values()
+        if not monitors:
+            self.root.add_widget(Label(text='No monitors'))
+            return self.root
         config = self.config['shinobi']
         monitor_urls = [
             '/%s/monitor/%s/%s' % (
@@ -250,7 +302,8 @@ class ShinobiViewer(App):
             monitor.serverURL = server_url
             monitor.monitorPath = url
             monitor.start()
-        return layout
+        self.root.add_widget(layout)
+        return self.root
 
     def fetch_monitors(self):
         shinobi_monitors_url = '/'.join([
@@ -259,15 +312,18 @@ class ShinobiViewer(App):
             'monitor',
             self.config['shinobi']['groupkey'],
         ])
-        response = requests.get(shinobi_monitors_url, timeout=60)
-        def get_properties(monitor):
-            details = json.loads(monitor['details'])
-            return {
-                'mid': monitor['mid'],
-                'name': monitor['name'],
-                'groups': details['groups']
-            }
-        return map(get_properties, response.json())
+        try:
+            response = requests.get(shinobi_monitors_url, timeout=60)
+        except:
+            return []
+        finally:
+            for monitor in response.json():
+                details = json.loads(monitor['details'])
+                yield {
+                    'mid': monitor['mid'],
+                    'name': monitor['name'],
+                    'groups': details['groups']
+                }
 
     def build_settings(self, settings):
         settings.add_json_panel('Connection', self.config, data=json.dumps([
@@ -322,9 +378,6 @@ class ShinobiViewer(App):
             'apiKey': '',
             'groupKey': ''
         })
-        config.setdefaults('graphics', {
-            'fullscreen': 'false'
-        })
         config.adddefaultsection('monitors')
 
     def on_keyboard(self, window, key, scancode, codepoint, modifier):
@@ -349,10 +402,12 @@ class ShinobiViewer(App):
 
     def open_settings(self, *args, **kwargs):
         self.start_stop_monitors(False)
+        self.root.clear_widgets()
         return super().open_settings(*args, **kwargs)
 
     def close_settings(self, *args, **kwargs):
         self.start_stop_monitors(True)
+        self.add_monitors()
         return super().close_settings(*args, **kwargs)
 
     def on_pause(self):
