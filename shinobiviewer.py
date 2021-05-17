@@ -14,6 +14,7 @@ from kivy.config import Config, ConfigParser
 from kivy.core.image import Image as CoreImage
 from kivy.core.window import Window
 from kivy.lang.builder import Builder
+from kivy.logger import Logger
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.loader import Loader
 from kivy.uix.boxlayout import BoxLayout
@@ -23,7 +24,7 @@ from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.settings import SettingsWithSidebar, SettingsPanel, SettingItem, SettingBoolean
 
-kivy.require('1.11.0')
+kivy.require('2.0.0')
 
 
 class ShinobiMonitor(BoxLayout):
@@ -55,10 +56,6 @@ class ShinobiMonitor(BoxLayout):
             self.remove_widget(self.loading_image)
 
     @property
-    def snapshot_url(self):
-        return '%s%s'  % (self.serverURL.rstrip('/'), self._data['snapshot'])
-
-    @property
     def state(self):
         return self._state
 
@@ -77,26 +74,27 @@ class ShinobiMonitor(BoxLayout):
         Clock.unschedule(self._update_event)
 
     def _fetch_metadata(self):
+        monitor_url = '%s/%s' % (self.serverURL.rstrip('/'), self.monitorPath.strip('/'))
         while self.state == 'play':
             try:
-                response = requests.get(
-                    '%s/%s' % (self.serverURL.rstrip('/'), self.monitorPath.strip('/')),
-                    timeout=10
-                )
-            except:
+                response = requests.get(monitor_url,timeout=10)
+            except Exception as ex:
+                Logger.debug('Failed to fetch monitor data: %s' % ex)
                 time.sleep(1)
                 continue
             if response.status_code == 200:
-                self._data = response.json()
+                self._data = response.json()[0]
                 self.image_thread.start()
                 self._update_event = Clock.schedule_interval(self._update_image, 1)
                 break
 
     def _fetch_image(self):
+        image_url = '%s%s'  % (self.serverURL.rstrip('/'), self._data.get('snapshot'))
         while self.state == 'play':
             try:
-                response = requests.get(self.snapshot_url, timeout=0.5)
-            except:
+                response = requests.get(image_url, timeout=0.5)
+            except Exception as ex:
+                Logger.debug('Failed to fetch image: %s' % ex)
                 time.sleep(0.5)
                 self.loading = True
                 continue
@@ -164,7 +162,7 @@ class MonitorSettingsPanel(SettingsPanel):
     def refresh_touch(self, instance):
         for item in self.monitors_items:
             self.remove_widget(item)
-        if not self._list_thread.isAlive():
+        if not self._list_thread.is_alive():
             self._list_thread.start()
 
     def _fetch_monitors(self):
@@ -383,8 +381,6 @@ class ShinobiViewer(App):
     def on_keyboard(self, window, key, scancode, codepoint, modifier):
         if scancode == 68: # F11
             self.fullscreen = not self.fullscreen
-        if scancode == 69: # F12
-            self.open_settings()
 
     def auto_layout(self, qtd):
         cols = math.ceil(math.sqrt(qtd))
