@@ -55,7 +55,7 @@ class ShinobiMonitor(BoxLayout):
         if self.state != 'play':
             return
         async with aiohttp.ClientSession() as session:
-            async with session.get(monitor_url) as response:
+            async with session.get(monitor_url, verify_ssl=False) as response:
                 if response.status == 200:
                     metadata = await response.json()
                     self._data = metadata[0]
@@ -69,7 +69,7 @@ class ShinobiMonitor(BoxLayout):
         if self.state != 'play':
             return
         async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as response:
+            async with session.get(image_url, verify_ssl=False) as response:
                 if response.status == 200:
                     data = BytesIO(await response.read())
                     im = CoreImage(data, ext="jpeg", nocache=True)

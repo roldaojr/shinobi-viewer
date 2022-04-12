@@ -47,7 +47,7 @@ class MonitorSettingsPanel(SettingsPanel):
         asyncio.create_task(self._update_list())
 
     async def _list_monitors(self):
-        shinobi_monitors_url = '/'.join([
+        monitors_url = '/'.join([
             self.config['shinobi']['server'].rstrip('/'),
             self.config['shinobi']['apikey'],
             'monitor',
@@ -55,7 +55,7 @@ class MonitorSettingsPanel(SettingsPanel):
         ])
         monitors = []
         async with aiohttp.ClientSession() as session:
-            async with session.get(shinobi_monitors_url) as response:
+            async with session.get(monitors_url, verify_ssl=False) as response:
                 monitor_list = await response.json()
                 for monitor in monitor_list:
                     details = json.loads(monitor['details'])
