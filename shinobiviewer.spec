@@ -3,7 +3,7 @@ from kivy_deps import sdl2, glew
 block_cipher = None
 
 
-a = Analysis(['shinobiviewer.py'],
+a = Analysis(['app.py'],
              binaries=[],
              datas=[],
              hiddenimports=['pkg_resources.py2_warn'],

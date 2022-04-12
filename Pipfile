@@ -7,14 +7,12 @@ verify_ssl = true
 
 [packages]
 kivy = {extras = ["base"], version = "*"}
-kivy-deps-sdl2 = {version="*", sys_platform = "== 'win32'"}
-kivy-deps-glew = {version="*", sys_platform = "== 'win32'"}
-requests = "*"
 pyinstaller = "*"
+aiohttp = "*"
 
 [requires]
-python_version = "3"
+python_version = "3.10"
 
 [scripts]
-shinobiviewer = "python shinobiviewer.py"
+app = "python app.py"
 build = "pyinstaller --noconfirm shinobiviewer.spec"
