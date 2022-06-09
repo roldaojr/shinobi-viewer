@@ -1,6 +1,3 @@
-#!/usr/bin/python3
-import asyncio
-import aiohttp
 import os
 import json
 import requests
@@ -16,6 +13,7 @@ from kivy.uix.settings import SettingsWithSidebar
 from .settings import MonitorSettingsPanel
 from .layout import auto_layout, load_layout
 from .monitor import ShinobiMonitor
+from .login import LoginPopup
 
 kivy.require('2.1.0')
 
@@ -40,7 +38,14 @@ class ShinobiViewer(App):
         ]
         Window.bind(on_keyboard=self.on_keyboard)  # bind our handler
         self.root = BoxLayout()
-        self.add_monitors()
+        # Check if apikey is defined in config
+        if self.config['shinobi']['apikey'] and self.config['shinobi']['groupkey']:
+            self.add_monitors()
+            return self.root
+        # prompt for login if API key is not defined
+        login = LoginPopup(config=self.config)
+        login.open()
+        login.on_dismiss = lambda: self.add_monitors()
         return self.root
 
     def add_monitors(self):
@@ -69,7 +74,6 @@ class ShinobiViewer(App):
             monitor.monitorPath = url
             monitor.start()
         self.root.add_widget(layout)
-        return self.root
 
     def build_settings(self, settings):
         settings.add_json_panel('Connection', self.config, data=json.dumps([
@@ -142,7 +146,7 @@ class ShinobiViewer(App):
 
     def close_settings(self, *args, **kwargs):
         # re-add all monitors
-        [monitor.start() for monitor in getattr(self, 'monitor_widgets', [])]
+        #[monitor.start() for monitor in getattr(self, 'monitor_widgets', [])]
         self.add_monitors()
         return super().close_settings(*args, **kwargs)
 

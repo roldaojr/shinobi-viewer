@@ -9,6 +9,7 @@ verify_ssl = true
 kivy = {extras = ["base"], version = "*"}
 pyinstaller = "*"
 aiohttp = "*"
+requests = "*"
 
 [requires]
 python_version = "3.10"
