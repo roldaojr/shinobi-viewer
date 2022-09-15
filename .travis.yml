@@ -1,0 +1,23 @@
+os: windows
+language: shell
+before_install:
+  - choco install python --version=3.10
+  - python -m pip install --upgrade pip
+  - pip install pipenv
+env: PATH=/c/Python310:/c/Python310/Scripts:$PATH
+install:
+  - pipenv install
+script:
+  - bash -c echo "No tests to run"
+before_deploy:
+  - pipenv run build
+deploy:
+  provider: releases
+  overwrite: true
+  api_key: $RELEASE_TOKEN
+  file_glob: true
+  file: dist/*.exe
+  skip_cleanup: true
+  draft: true
+  on:
+    tags: true
