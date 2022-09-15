@@ -69,7 +69,7 @@ class LoginPopup(Popup):
 
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.post(f'{server_url}/?json=true', data=data) as response:
+                async with session.post(f'{server_url}/?json=true', data=data, verify_ssl=False) as response:
                     data = await response.json()
                     if data['ok']:
                         self.message.text = ""
@@ -81,5 +81,5 @@ class LoginPopup(Popup):
                     else:
                         self.message.text = 'Invalid e-mail or password'
             except Exception as ex:
-                self.message.text = ex.message
+                self.message.text = str(ex)
         self.lock_controls(False)

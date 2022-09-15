@@ -48,7 +48,9 @@ class ShinobiMonitor(BoxLayout):
     def stop(self):
         self._state = 'stop'
         self.loading = False
-        Clock.unschedule(self._update_task)
+        update_task = getattr(self, '_update_task', None)
+        if update_task:
+            Clock.unschedule(self._update_task)
 
     async def _fetch_metadata(self):
         monitor_url = '%s/%s' % (self.serverURL.rstrip('/'), self.monitorPath.strip('/'))
