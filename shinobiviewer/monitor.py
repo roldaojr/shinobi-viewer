@@ -6,9 +6,27 @@ from kivy.core.image import Image as CoreImage
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
+from kivy.uix.popup import Popup
+from kivy.uix.behaviors import ButtonBehavior
 
 
-class ShinobiMonitor(BoxLayout):
+class ShinobiMonitorPopup(Popup):
+    def __init__(self, monitor, title='Visualização'):
+        super().__init__(title=title)
+        self.monitor = monitor
+        self.image = monitor.image
+
+    def on_open(self):
+        self.monitor.remove_widget(self.image)
+        self.add_widget(self.image)
+
+    def on_dismiss(self):
+        self.remove_widget(self.image)
+        self._container.clear_widgets()
+        self.monitor.add_widget(self.image)
+
+
+class ShinobiMonitor(ButtonBehavior, BoxLayout):
     serverURL = StringProperty()
     monitorPath = StringProperty()
     loading = BooleanProperty(False)
@@ -16,7 +34,7 @@ class ShinobiMonitor(BoxLayout):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._data = {}
-        self._state = 'stop'
+        self._is_playing = False
         self._update_event = None
         self.image = Image(
             allow_stretch=True,
@@ -36,17 +54,20 @@ class ShinobiMonitor(BoxLayout):
             self.add_widget(self.image)
             self.remove_widget(self.loading_image)
 
+    def on_release(self):
+        ShinobiMonitorPopup(self, title=self._data['name']).open()
+
     @property
-    def state(self):
-        return self._state
+    def is_playing(self):
+        return self._is_playing
 
     def start(self):
         self.loading = True
-        self._state = 'play'
+        self._is_playing = True
         asyncio.create_task(self._fetch_metadata())
 
     def stop(self):
-        self._state = 'stop'
+        self._is_playing = False
         self.loading = False
         update_task = getattr(self, '_update_task', None)
         if update_task:
@@ -54,7 +75,7 @@ class ShinobiMonitor(BoxLayout):
 
     async def _fetch_metadata(self):
         monitor_url = '%s/%s' % (self.serverURL.rstrip('/'), self.monitorPath.strip('/'))
-        if self.state != 'play':
+        if not self._is_playing:
             return
         async with aiohttp.ClientSession() as session:
             async with session.get(monitor_url, verify_ssl=False) as response:
@@ -68,7 +89,7 @@ class ShinobiMonitor(BoxLayout):
 
     async def _fetch_image(self):
         image_url = '%s%s'  % (self.serverURL.rstrip('/'), self._data.get('snapshot'))
-        if self.state != 'play':
+        if not self._is_playing:
             return
         async with aiohttp.ClientSession() as session:
             async with session.get(image_url, verify_ssl=False) as response:
